@@ -1,7 +1,8 @@
 'use strict';
 /*
- * Nimbus: a small session-based web proxy. No dependencies. Needs Node 18.14+.
+ * Nimbus: a small session-based web proxy. One dependency (ws). Needs Node 18.14+.
  *
+ *   npm install
  *   node server.js
  *
  * Environment variables:
@@ -9,6 +10,7 @@
  *   HOST           default 127.0.0.1 (local only). Use 0.0.0.0 to serve other devices.
  *   PASSWORD       optional. If set, creating a session requires it.
  *   ALLOW_PRIVATE  set to 1 to let the proxy reach localhost / LAN addresses (off by default).
+ *   DEBUG          set to 1 to log each request (host, path, status) and WebSocket events. Off by default.
  */
 
 const http = require('http');
@@ -18,11 +20,14 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { Readable } = require('stream');
+const { WebSocketServer, WebSocket } = require('ws');
 
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const PASSWORD = process.env.PASSWORD || '';
 const ALLOW_PRIVATE = process.env.ALLOW_PRIVATE === '1';
+const DEBUG = process.env.DEBUG === '1';
+const log = (...a) => { if (DEBUG) console.log(new Date().toISOString().slice(11, 19), ...a); };
 const SESSION_TTL = 3 * 24 * 60 * 60 * 1000; // idle sessions are deleted after 3 days
 const MAX_BODY = 50 * 1024 * 1024;
 
@@ -148,17 +153,27 @@ function isPrivateIp(ip) {
   return true;
 }
 
-async function hostAllowed(hostname) {
-  if (ALLOW_PRIVATE) return true;
+async function hostProblem(hostname) {
+  if (ALLOW_PRIVATE) return null;
   const h = hostname.replace(/^\[|\]$/g, '');
-  if (net.isIP(h)) return !isPrivateIp(h);
-  if (h === 'localhost' || h.endsWith('.localhost')) return false;
+  if (net.isIP(h)) return isPrivateIp(h) ? `${h} is a private address` : null;
+  if (h === 'localhost' || h.endsWith('.localhost')) return `${h} is a private address`;
+  let addrs;
   try {
-    const addrs = await dns.lookup(h, { all: true });
-    return addrs.length > 0 && addrs.every((a) => !isPrivateIp(a.address));
+    addrs = await dns.lookup(h, { all: true });
   } catch {
-    return false;
+    return `${h} could not be looked up (DNS failed)`;
   }
+  const bad = addrs.find((a) => isPrivateIp(a.address));
+  return bad ? `${h} resolves to the private address ${bad.address} (a network filter may be redirecting it)` : null;
+}
+
+// Reads the first few bytes of a response without consuming the real one (used only for DEBUG logs).
+async function peek(resp) {
+  const reader = resp.clone().body.getReader();
+  const { value } = await reader.read();
+  reader.cancel().catch(() => {});
+  return Buffer.from(value || []).toString('utf8', 0, 200).replace(/\s+/g, ' ');
 }
 
 /* ---------------------------------------------------------------- rewriting */
@@ -344,10 +359,21 @@ function clientMain(cfg) {
     },
   });
 
-  // Things this proxy does not support. Blocking them stops the page from bypassing the proxy.
-  window.WebSocket = function () {
-    throw new DOMException('WebSockets are not supported by this proxy', 'SecurityError');
-  };
+  // WebSockets go through the server too: /_ws/<session>?u=<real ws address>
+  var NativeWS = window.WebSocket;
+  function ProxyWS(url, protocols) {
+    var t = new URL(String(url), real.href);
+    if (t.protocol === 'http:') t.protocol = 'ws:';
+    else if (t.protocol === 'https:') t.protocol = 'wss:';
+    var via = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host +
+      '/_ws/' + cfg.sid + '?u=' + encodeURIComponent(t.href);
+    return protocols === undefined ? new NativeWS(via) : new NativeWS(via, protocols);
+  }
+  ProxyWS.prototype = NativeWS.prototype;
+  ProxyWS.CONNECTING = 0; ProxyWS.OPEN = 1; ProxyWS.CLOSING = 2; ProxyWS.CLOSED = 3;
+  window.WebSocket = ProxyWS;
+
+  // Service workers are not supported. Blocking them stops pages from bypassing the proxy.
   try {
     if (navigator.serviceWorker) {
       navigator.serviceWorker.register = function () { return Promise.reject(new Error('Blocked by proxy')); };
@@ -464,6 +490,23 @@ const DROP = new Set([
   'referrer-policy',
 ]);
 
+/* ------------------------------------------------------------------ site fixes */
+
+// Small edits to a site's own JavaScript, for sites that check which address they are running on.
+// If an edit stops matching (the site changed its code), turn on DEBUG and look for "SITE PATCH".
+const SITE_PATCHES = [
+  {
+    // Pokemon Showdown's client only connects to its normal game server when the page is on
+    // play.pokemonshowdown.com. On any other address it asks the login server for a server config
+    // for that address. For 127.0.0.1 that config points at your own computer, so the client never
+    // reaches the real game server. This makes it take the normal path instead.
+    name: 'showdown-origin-check',
+    host: /(^|\.)pokemonshowdown\.com$/,
+    file: /\/js\/oldclient\/storage\.js$/,
+    edit: (js) => js.replace(/location\.protocol\s*\+\s*(['"])\/\/\1\s*\+\s*location\.hostname\s*===\s*Storage\.origin/, 'true'),
+  },
+];
+
 /* -------------------------------------------------------------- proxy handler */
 
 async function handleProxy(req, res, sid, targetStr, ref) {
@@ -476,7 +519,11 @@ async function handleProxy(req, res, sid, targetStr, ref) {
   } catch {
     return send(res, 400, 'That is not a valid address.');
   }
-  if (!(await hostAllowed(target.hostname))) return send(res, 403, 'Blocked: this address is private or could not be found.');
+  const problem = await hostProblem(target.hostname);
+  if (problem) {
+    log('BLOCKED BY NIMBUS:', problem);
+    return send(res, 403, 'Blocked by Nimbus: ' + problem + '.');
+  }
 
   const method = req.method;
   const hasBody = method !== 'GET' && method !== 'HEAD';
@@ -498,7 +545,12 @@ async function handleProxy(req, res, sid, targetStr, ref) {
   try {
     up = await fetch(target, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(30000) });
   } catch (e) {
+    log('FETCH FAILED', method, target.host + target.pathname, (e.cause && e.cause.code) || e.message);
     return send(res, 502, `Could not reach ${target.host}: ${(e.cause && e.cause.code) || e.message}`);
+  }
+  log(method, target.host + target.pathname.slice(0, 70), up.status, up.headers.get('content-type') || '');
+  if (DEBUG && [401, 403, 429, 503].includes(up.status) && up.body) {
+    peek(up).then((t) => log('   the site said:', t)).catch(() => {});
   }
 
   for (const sc of up.headers.getSetCookie ? up.headers.getSetCookie() : []) {
@@ -542,6 +594,18 @@ async function handleProxy(req, res, sid, targetStr, ref) {
     }
     const data = Buffer.from(text, 'utf8');
     out['content-type'] = (isHtml ? 'text/html' : 'text/css') + '; charset=utf-8';
+    out['content-length'] = data.length;
+    res.writeHead(up.status, out);
+    return res.end(data);
+  }
+
+  const patch = up.status === 200 && SITE_PATCHES.find((x) => x.host.test(target.hostname) && x.file.test(target.pathname));
+  if (patch) {
+    const original = Buffer.from(await up.arrayBuffer()).toString('utf8');
+    const edited = patch.edit(original);
+    log(edited === original ? 'SITE PATCH DID NOT MATCH:' : 'site patch applied:', patch.name);
+    const data = Buffer.from(edited, 'utf8');
+    out['content-type'] = 'text/javascript; charset=utf-8';
     out['content-length'] = data.length;
     res.writeHead(up.status, out);
     return res.end(data);
@@ -626,7 +690,99 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`Nimbus is running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
-  if (HOST === '0.0.0.0' && !PASSWORD) console.log('Warning: open to the network with no PASSWORD set.');
+/* ------------------------------------------------------------------ WebSockets */
+
+const WS_RE = new RegExp(`^/_ws/(${SID})\\?u=(.+)$`);
+const wss = new WebSocketServer({
+  noServer: true,
+  handleProtocols: (protocols, req) => (req._upstreamProtocol && protocols.has(req._upstreamProtocol) ? req._upstreamProtocol : false),
 });
+
+function rejectUpgrade(socket, code, text) {
+  socket.write(`HTTP/1.1 ${code} ${text}\r\nConnection: close\r\nContent-Length: 0\r\n\r\n`);
+  socket.destroy();
+}
+
+function closeSafe(ws, code, reason) {
+  const ok = code >= 1000 && code <= 4999 && ![1004, 1005, 1006, 1015].includes(code);
+  try {
+    ws.close(ok ? code : 1000, reason);
+  } catch {
+    ws.terminate();
+  }
+}
+
+server.on('upgrade', async (req, socket, head) => {
+  socket.on('error', () => {});
+  const m = WS_RE.exec(req.url);
+  if (!m) return rejectUpgrade(socket, 400, 'Bad Request');
+  const sess = getSession(m[1]);
+  if (!sess) return rejectUpgrade(socket, 410, 'Gone');
+
+  let target;
+  try {
+    target = new URL(decodeURIComponent(m[2]));
+  } catch {
+    return rejectUpgrade(socket, 400, 'Bad Request');
+  }
+  if (target.protocol !== 'ws:' && target.protocol !== 'wss:') return rejectUpgrade(socket, 400, 'Bad Request');
+  const problem = await hostProblem(target.hostname);
+  if (problem) {
+    log('WS BLOCKED BY NIMBUS:', problem);
+    return rejectUpgrade(socket, 403, 'Forbidden');
+  }
+  log('WS connecting', target.host + target.pathname.slice(0, 70));
+
+  const httpUrl = new URL(target.href);
+  httpUrl.protocol = target.protocol === 'wss:' ? 'https:' : 'http:';
+  const headers = { origin: httpUrl.origin };
+  if (req.headers['user-agent']) headers['user-agent'] = req.headers['user-agent'];
+  const ck = cookiesFor(sess, httpUrl);
+  if (ck) headers.cookie = ck;
+  const protocols = (req.headers['sec-websocket-protocol'] || '').split(',').map((x) => x.trim()).filter(Boolean);
+
+  const upstream = new WebSocket(target.href, protocols, { headers, handshakeTimeout: 15000 });
+  upstream.on('upgrade', (r) => {
+    for (const sc of [].concat(r.headers['set-cookie'] || [])) {
+      const c = parseSetCookie(sc, httpUrl);
+      if (c) storeCookie(sess, c);
+    }
+  });
+  let upgraded = false;
+  upstream.on('unexpected-response', (rq, r) => {
+    log('WS upstream refused', target.host, r.statusCode);
+    rq.destroy();
+    if (!upgraded) rejectUpgrade(socket, 502, 'Bad Gateway');
+  });
+  upstream.on('error', (e) => {
+    log('WS upstream error', target.host, e.message);
+    if (!upgraded) rejectUpgrade(socket, 502, 'Bad Gateway');
+  });
+
+  upstream.on('open', () => {
+    upgraded = true;
+    log('WS open', target.host);
+    req._upstreamProtocol = upstream.protocol;
+    wss.handleUpgrade(req, socket, head, (client) => {
+      client.on('message', (data, isBinary) => {
+        if (upstream.readyState === WebSocket.OPEN) upstream.send(data, { binary: isBinary });
+      });
+      upstream.on('message', (data, isBinary) => {
+        if (client.readyState === WebSocket.OPEN) client.send(data, { binary: isBinary });
+      });
+      client.on('close', (code, reason) => { log('WS client closed', code); closeSafe(upstream, code, reason); });
+      upstream.on('close', (code, reason) => { log('WS upstream closed', target.host, code); closeSafe(client, code, reason); });
+      client.on('error', () => upstream.terminate());
+      upstream.on('error', () => client.terminate());
+    });
+  });
+});
+
+if (require.main === module) {
+  server.listen(PORT, HOST, () => {
+    console.log(`Nimbus is running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
+    if (HOST === '0.0.0.0' && !PASSWORD) console.log('Warning: open to the network with no PASSWORD set.');
+  });
+}
+
+module.exports = { SITE_PATCHES };

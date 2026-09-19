@@ -21,7 +21,7 @@
   * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh; padding: 24px;
-    display: grid; place-items: center;
+    display: grid; grid-template-columns: minmax(0, 1fr); place-items: center;
     background: var(--mist); color: var(--ink);
     background-image:
       radial-gradient(60vw 45vh at 12% 0%, var(--glow-a), transparent),
@@ -69,7 +69,8 @@
     border: 0; background: none; padding: 4px 0; cursor: pointer;
     color: var(--cobalt); font: inherit; text-decoration: underline; text-underline-offset: 3px;
   }
-  #msg { min-height: 1.5em; margin: 16px 0 0; color: var(--warn); }
+  #msg { min-height: 1.5em; margin: 16px 0 0; opacity: .85; }
+  #msg.bad { color: var(--warn); opacity: 1; }
   :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
   #q:focus-visible { outline: none; }
 </style>
@@ -80,7 +81,7 @@
   <p class="lede">Browse through your own server. Cookies from the sites you visit are stored in your session here, not in your browser.</p>
 
   <form id="go" autocomplete="off">
-    <input id="q" type="text" placeholder="Search or enter a web address" spellcheck="false" autofocus aria-label="Search or enter a web address">
+    <input id="q" type="text" placeholder="Search or enter an address" spellcheck="false" autofocus aria-label="Search or enter a web address">
     <button type="submit">Go</button>
   </form>
 
@@ -104,7 +105,11 @@
   var $ = function (s) { return document.querySelector(s); };
   var sid = localStorage.getItem('nimbus.sid') || '';
 
-  function say(t) { $('#msg').textContent = t || ''; }
+  function say(t) {
+    var m = $('#msg');
+    m.textContent = t || '';
+    m.className = /could not|does not|no session|needs a password|failed|no session to/i.test(t || '') ? 'bad' : '';
+  }
   function show() { $('#sid').textContent = sid || 'none yet'; }
   function save(id) {
     sid = id || '';
