@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Nimbus</title>
+<style>
+  :root {
+    --mist: #e9eff6; --ink: #10203a; --cobalt: #2f5bea; --on-cobalt: #fff;
+    --fog: #c9d5e6; --paper: #fff; --warn: #b4430c;
+    --glow-a: rgba(255,255,255,.8); --glow-b: rgba(47,91,234,.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --mist: #0e1a2f; --ink: #e6edf8; --cobalt: #86a6ff; --on-cobalt: #0e1a2f;
+      --fog: #2a3b5c; --paper: #15243d; --warn: #ff9a62;
+      --glow-a: rgba(134,166,255,.12); --glow-b: rgba(134,166,255,.08);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; padding: 24px;
+    display: grid; place-items: center;
+    background: var(--mist); color: var(--ink);
+    background-image:
+      radial-gradient(60vw 45vh at 12% 0%, var(--glow-a), transparent),
+      radial-gradient(50vw 40vh at 100% 100%, var(--glow-b), transparent);
+    font: 16px/1.5 ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+  }
+  main { width: min(680px, 100%); }
+  h1 {
+    margin: 0 0 14px; font-size: clamp(64px, 16vw, 132px);
+    font-weight: 800; letter-spacing: -.055em; line-height: .88;
+  }
+  .lede { max-width: 46ch; margin: 0 0 34px; opacity: .78; }
+
+  #go {
+    display: flex; background: var(--paper);
+    border: 2px solid var(--ink); border-radius: 999px; padding: 6px;
+  }
+  #go:focus-within { box-shadow: 0 0 0 6px color-mix(in srgb, var(--cobalt) 22%, transparent); }
+  #q {
+    flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
+    color: inherit; font: inherit; font-size: 20px; padding: 12px 20px;
+  }
+  #go button {
+    border: 0; border-radius: 999px; padding: 0 30px; cursor: pointer;
+    background: var(--cobalt); color: var(--on-cobalt); font: inherit; font-weight: 700;
+  }
+
+  #pw { margin-top: 12px; }
+  #pass {
+    width: 100%; border: 2px solid var(--fog); border-radius: 999px; padding: 10px 18px;
+    background: var(--paper); color: inherit; font: inherit;
+  }
+
+  .session {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
+    margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--fog);
+  }
+  code {
+    font: 14px ui-monospace, Menlo, Consolas, monospace;
+    background: var(--paper); border: 1px solid var(--fog); border-radius: 8px; padding: 4px 10px;
+    overflow-wrap: anywhere;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+  .actions button {
+    border: 0; background: none; padding: 4px 0; cursor: pointer;
+    color: var(--cobalt); font: inherit; text-decoration: underline; text-underline-offset: 3px;
+  }
+  #msg { min-height: 1.5em; margin: 16px 0 0; color: var(--warn); }
+  :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
+  #q:focus-visible { outline: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>nimbus</h1>
+  <p class="lede">Browse through your own server. Cookies from the sites you visit are stored in your session here, not in your browser.</p>
+
+  <form id="go" autocomplete="off">
+    <input id="q" type="text" placeholder="Search or enter a web address" spellcheck="false" autofocus aria-label="Search or enter a web address">
+    <button type="submit">Go</button>
+  </form>
+
+  <div id="pw" hidden>
+    <input id="pass" type="password" placeholder="Server password" aria-label="Server password">
+  </div>
+
+  <section class="session" aria-label="Session">
+    <span>Session <code id="sid">none yet</code></span>
+    <div class="actions">
+      <button type="button" id="copy">Copy ID</button>
+      <button type="button" id="load">Load ID</button>
+      <button type="button" id="new">New session</button>
+      <button type="button" id="wipe">Delete session</button>
+    </div>
+  </section>
+  <p id="msg" role="status"></p>
+</main>
+
+<script>
+  var $ = function (s) { return document.querySelector(s); };
+  var sid = localStorage.getItem('nimbus.sid') || '';
+
+  function say(t) { $('#msg').textContent = t || ''; }
+  function show() { $('#sid').textContent = sid || 'none yet'; }
+  function save(id) {
+    sid = id || '';
+    if (sid) localStorage.setItem('nimbus.sid', sid); else localStorage.removeItem('nimbus.sid');
+    show();
+  }
+
+  async function api(path, body) {
+    var r = await fetch('/_px/' + path, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {})
+    });
+    return { status: r.status, data: await r.json().catch(function () { return {}; }) };
+  }
+
+  async function exists(id) {
+    var r = await fetch('/_px/session?id=' + encodeURIComponent(id));
+    return (await r.json()).exists;
+  }
+
+  async function create() {
+    var r = await api('session', { password: $('#pass').value });
+    if (r.status === 401) {
+      $('#pw').hidden = false; $('#pass').focus();
+      say('This server needs a password before it can start a session.');
+      return false;
+    }
+    if (!r.data.id) { say('Could not start a session. Check that the server is running.'); return false; }
+    save(r.data.id); say('');
+    return true;
+  }
+
+  function normalize(v) {
+    v = v.trim();
+    if (!v) return '';
+    if (/^https?:\/\//i.test(v)) return v;
+    if (/^[^\s\/]+\.[a-z]{2,}([\/:?#].*)?$/i.test(v) || /^localhost(:\d+)?/i.test(v)) return 'https://' + v;
+    return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(v);
+  }
+
+  $('#go').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var url = normalize($('#q').value);
+    if (!url) return;
+    if (sid && !(await exists(sid))) save('');
+    if (!sid && !(await create())) return;
+    location.href = '/p/' + sid + '/' + url;
+  });
+
+  $('#copy').onclick = async function () {
+    if (!sid) return say('There is no session to copy yet.');
+    try { await navigator.clipboard.writeText(sid); say('Session ID copied.'); }
+    catch (e) { say('Copy failed. Select the ID and copy it by hand.'); }
+  };
+
+  $('#load').onclick = async function () {
+    var id = (prompt('Paste a session ID') || '').trim().toLowerCase();
+    if (!id) return;
+    if (!/^[0-9a-f]{24}$/.test(id)) return say('That does not look like a session ID.');
+    if (!(await exists(id))) return say('No session with that ID. It may have expired or the server restarted.');
+    save(id); say('Session loaded.');
+  };
+
+  $('#new').onclick = async function () {
+    if (await create()) say('New session started. Cookies from the old one were not carried over.');
+  };
+
+  $('#wipe').onclick = async function () {
+    if (!sid) return say('There is no session to delete.');
+    await api('session/delete', { id: sid });
+    save(''); say('Session deleted. Its cookies are gone from the server.');
+  };
+
+  show();
+  if (sid) exists(sid).then(function (ok) {
+    if (!ok) { save(''); say('Your saved session expired. A new one starts when you go to a site.'); }
+  });
+</script>
+</body>
+</html>
