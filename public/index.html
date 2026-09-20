@@ -4,101 +4,273 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#080b25">
 <title>Nimbus</title>
 <style>
+  /* Dusk by default, daytime sky when the system is set to light. */
   :root {
-    --mist: #e9eff6; --ink: #10203a; --cobalt: #2f5bea; --on-cobalt: #fff;
-    --fog: #c9d5e6; --paper: #fff; --warn: #b4430c;
-    --glow-a: rgba(255,255,255,.8); --glow-b: rgba(47,91,234,.14);
+    --ink: #f5f2ff; --muted: rgba(245,242,255,.76);
+    --sky1: #080b25; --sky2: #231457; --sky3: #5a2a86; --horizon: #ff8f6b;
+    --glass: rgba(255,255,255,.08); --glass-hi: rgba(255,255,255,.15); --edge: rgba(255,255,255,.2);
+    --accent1: #7df3ff; --accent2: #b18cff; --on-accent: #0a0d2b;
+    --orb1: rgba(124,92,255,.55); --orb2: rgba(56,214,255,.30); --orb3: rgba(255,120,110,.38);
+    --stars: .85; --cloud: rgba(255,255,255,.07);
+    --shadow: 0 24px 60px rgba(4,6,30,.55);
+    --ok: #86f5bb; --bad: #ffb491;
+    --title-a: #ffffff; --title-b: #b8b2ff;
+    --cloud-a: #ffffff; --cloud-b: #b8b2ff;
+    --orb-a: #ffffff; --orb-b: #c9d1ff; --orb-glow: rgba(160,170,255,.38); --orb-glow2: rgba(140,110,255,.22);
+    --chip: rgba(0,0,0,.16); --logo-glow: rgba(140,120,255,.55);
   }
-  @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: light) {
     :root {
-      --mist: #0e1a2f; --ink: #e6edf8; --cobalt: #86a6ff; --on-cobalt: #0e1a2f;
-      --fog: #2a3b5c; --paper: #15243d; --warn: #ff9a62;
-      --glow-a: rgba(134,166,255,.12); --glow-b: rgba(134,166,255,.08);
+      --ink: #0d1b3d; --muted: rgba(13,27,61,.74);
+      --sky1: #5da8ff; --sky2: #a9d2ff; --sky3: #e6f2ff; --horizon: #ffe4bd;
+      --glass: rgba(255,255,255,.55); --glass-hi: rgba(255,255,255,.8); --edge: rgba(255,255,255,.95);
+      --accent1: #2f5bea; --accent2: #5f80ff; --on-accent: #fff;
+      --orb1: rgba(255,255,255,.75); --orb2: rgba(120,180,255,.55); --orb3: rgba(255,214,150,.65);
+      --stars: 0; --cloud: rgba(255,255,255,.6);
+      --shadow: 0 24px 60px rgba(40,80,150,.25);
+      --ok: #0a7a45; --bad: #b3410a;
+      --title-a: #0d1b3d; --title-b: #2f5bea;
+      --cloud-a: #ffffff; --cloud-b: #8fbaff;
+      --orb-a: #fffef0; --orb-b: #ffd873; --orb-glow: rgba(255,255,255,.85); --orb-glow2: rgba(255,232,180,.6);
+      --chip: rgba(13,27,61,.08); --logo-glow: rgba(47,91,234,.4);
     }
   }
+
   * { box-sizing: border-box; }
+  html { height: 100%; }
   body {
-    margin: 0; min-height: 100vh; padding: 24px;
+    margin: 0; min-height: 100%; color: var(--ink);
+    background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 42%, var(--sky3) 76%, var(--horizon) 100%) fixed;
+    font: 16px/1.5 ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif;
     display: grid; grid-template-columns: minmax(0, 1fr); place-items: center;
-    background: var(--mist); color: var(--ink);
+    padding: 40px 20px; overflow-x: hidden;
+  }
+
+  /* ---------- sky ---------- */
+  .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(70px); will-change: transform; }
+  .o1 { width: 52vw; height: 52vw; left: -14vw; top: -18vw; background: var(--orb1); animation: drift 38s ease-in-out infinite alternate; }
+  .o2 { width: 44vw; height: 44vw; right: -12vw; top: 8vh; background: var(--orb2); animation: drift 46s ease-in-out -12s infinite alternate-reverse; }
+  .o3 { width: 60vw; height: 34vw; left: 14vw; bottom: -18vw; background: var(--orb3); animation: drift 52s ease-in-out -20s infinite alternate; }
+  @keyframes drift { to { transform: translate3d(7vw, -5vh, 0) scale(1.14); } }
+
+  .moon {
+    position: absolute; right: 11vw; top: 9vh; width: clamp(60px, 7vw, 104px); aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(circle at 35% 32%, var(--orb-a), var(--orb-b));
+    box-shadow: 0 0 50px 16px var(--orb-glow), 0 0 170px 70px var(--orb-glow2);
+    transition: translate .8s cubic-bezier(.2,.7,.2,1);
+  }
+  .orb { transition: translate .9s cubic-bezier(.2,.7,.2,1); }
+  .stars {
+    position: absolute; inset: 0 0 42% 0; opacity: var(--stars);
     background-image:
-      radial-gradient(60vw 45vh at 12% 0%, var(--glow-a), transparent),
-      radial-gradient(50vw 40vh at 100% 100%, var(--glow-b), transparent);
-    font: 16px/1.5 ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+      radial-gradient(1.6px 1.6px at 8% 18%, #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 17% 44%, #fff 50%, transparent 52%),
+      radial-gradient(1.8px 1.8px at 26% 12%, #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 34% 34%, #fff 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 47% 8%,  #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 56% 27%, #fff 50%, transparent 52%),
+      radial-gradient(1.8px 1.8px at 66% 15%, #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 74% 40%, #fff 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 83% 10%, #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 91% 30%, #fff 50%, transparent 52%),
+      radial-gradient(1.4px 1.4px at 96% 52%, #fff 50%, transparent 52%),
+      radial-gradient(1.2px 1.2px at 4% 58%,  #fff 50%, transparent 52%);
+    animation: twinkle 7s ease-in-out infinite alternate;
   }
-  main { width: min(680px, 100%); }
+  @keyframes twinkle { from { opacity: calc(var(--stars) * .55); } to { opacity: var(--stars); } }
+
+  .cloud { position: absolute; bottom: -6vh; border-radius: 50%; background: var(--cloud); filter: blur(34px); }
+  .c1 { left: -12vw; width: 58vw; height: 24vh; animation: sway 60s ease-in-out infinite alternate; }
+  .c2 { right: -16vw; width: 66vw; height: 30vh; bottom: -10vh; animation: sway 72s ease-in-out -30s infinite alternate-reverse; }
+  .c3 { left: 24vw; width: 46vw; height: 18vh; bottom: 2vh; opacity: .7; animation: sway 84s ease-in-out -10s infinite alternate; }
+  @keyframes sway { to { transform: translateX(9vw); } }
+
+  .grain {
+    position: absolute; inset: 0; opacity: .07; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- layout ---------- */
+  main { width: min(720px, 100%); text-align: center; }
+  .rise { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 80ms); }
+  @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+
+  .brand { display: inline-flex; align-items: center; gap: clamp(10px, 2.5vw, 22px); }
+  .logo { width: clamp(58px, 12vw, 108px); height: auto; filter: drop-shadow(0 10px 26px var(--logo-glow)); animation: bob 7s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform: translateY(-6px); } }
   h1 {
-    margin: 0 0 14px; font-size: clamp(64px, 16vw, 132px);
-    font-weight: 800; letter-spacing: -.055em; line-height: .88;
+    margin: 0; font-size: clamp(60px, 14vw, 116px); font-weight: 800; line-height: .95;
+    letter-spacing: -.055em; padding-bottom: .06em;
+    background:
+      linear-gradient(105deg, transparent 42%, rgba(255,255,255,.75) 50%, transparent 58%) no-repeat 150% 0 / 250% 100%,
+      linear-gradient(180deg, var(--title-a) 30%, var(--title-b) 110%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: glint 9s ease-in-out 1.2s infinite;
   }
-  .lede { max-width: 46ch; margin: 0 0 34px; opacity: .78; }
+  @keyframes glint { 0%, 55% { background-position: 150% 0, 0 0; } 100% { background-position: -50% 0, 0 0; } }
+  .lede { text-wrap: balance; max-width: 44ch; margin: 16px auto 40px; color: var(--muted); font-size: 17px; }
 
-  #go {
-    display: flex; background: var(--paper);
-    border: 2px solid var(--ink); border-radius: 999px; padding: 6px;
+  /* ---------- address bar ---------- */
+  .bar {
+    display: flex; align-items: center; gap: 12px; padding: 9px 9px 9px 26px; border-radius: 999px;
+    background: var(--glass); border: 1px solid var(--edge);
+    -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.22);
+    transition: box-shadow .25s, border-color .25s;
   }
-  #go:focus-within { box-shadow: 0 0 0 6px color-mix(in srgb, var(--cobalt) 22%, transparent); }
+  .bar { position: relative; }
+  .bar::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 2px; pointer-events: none;
+    background: linear-gradient(110deg, var(--accent1), var(--accent2), #ff8fb1, var(--accent1)); background-size: 300% 100%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    opacity: 0; transition: opacity .3s; animation: flow 7s linear infinite;
+  }
+  @keyframes flow { to { background-position: 300% 0; } }
+  .bar:focus-within::before { opacity: 1; }
+  .bar:focus-within { box-shadow: var(--shadow), 0 0 60px -10px color-mix(in srgb, var(--accent2) 55%, transparent); }
+  .bar .i { flex: none; opacity: .75; }
   #q {
-    flex: 1; min-width: 0; border: 0; outline: none; background: transparent;
-    color: inherit; font: inherit; font-size: 20px; padding: 12px 20px;
+    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink);
+    font: inherit; font-size: 21px; padding: 16px 4px;
   }
-  #go button {
-    border: 0; border-radius: 999px; padding: 0 30px; cursor: pointer;
-    background: var(--cobalt); color: var(--on-cobalt); font: inherit; font-weight: 700;
+  #q::placeholder { color: var(--muted); opacity: .85; }
+  .go {
+    flex: none; display: inline-flex; align-items: center; gap: 8px; height: 58px; padding: 0 30px;
+    border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 700; font-size: 17px;
+    color: var(--on-accent); background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent2) 45%, transparent);
+    transition: transform .18s, filter .18s;
+  }
+  .go:hover { transform: translateY(-1px); filter: brightness(1.08); }
+  .go:active { transform: translateY(1px); }
+  .go .i { transition: transform .2s; }
+  .go:hover .i { transform: translateX(3px); }
+
+  .hint { text-wrap: balance; margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+  kbd {
+    font: 12px ui-monospace, Menlo, Consolas, monospace; padding: 1px 7px; border-radius: 6px;
+    background: var(--glass); border: 1px solid var(--edge);
   }
 
-  #pw { margin-top: 12px; }
+  #pw { margin-top: 14px; }
   #pass {
-    width: 100%; border: 2px solid var(--fog); border-radius: 999px; padding: 10px 18px;
-    background: var(--paper); color: inherit; font: inherit;
+    width: 100%; padding: 14px 22px; border-radius: 999px; font: inherit; color: var(--ink); outline: 0;
+    background: var(--glass); border: 1px solid var(--edge);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  }
+  #pass:focus { border-color: var(--accent1); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent1) 28%, transparent); }
+  #pass::placeholder { color: var(--muted); }
+
+  .glass {
+    background: var(--glass); border: 1px solid var(--edge);
+    -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(4,6,30,.18), inset 0 1px 0 rgba(255,255,255,.18);
   }
 
-  .session {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px;
-    margin-top: 30px; padding-top: 18px; border-top: 1px solid var(--fog);
+  /* ---------- session dock ---------- */
+  .dock {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 10px;
+    margin: 44px auto 0; padding: 10px 12px; border-radius: 22px; width: fit-content; max-width: 100%;
   }
-  code {
-    font: 14px ui-monospace, Menlo, Consolas, monospace;
-    background: var(--paper); border: 1px solid var(--fog); border-radius: 8px; padding: 4px 10px;
-    overflow-wrap: anywhere;
+  .sid { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 14px; background: var(--chip); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); opacity: .5; }
+  .dot.on { background: var(--ok); opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .sid .l { color: var(--muted); font-size: 14px; }
+  code { font: 14px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
+  .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 12px; cursor: pointer;
+    color: var(--ink); background: transparent; border: 1px solid transparent; font: inherit; font-size: 14px;
+    transition: background .18s, border-color .18s;
   }
-  .actions { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-  .actions button {
-    border: 0; background: none; padding: 4px 0; cursor: pointer;
-    color: var(--cobalt); font: inherit; text-decoration: underline; text-underline-offset: 3px;
+  .chip:hover { background: var(--glass-hi); border-color: var(--edge); }
+  .chip.danger:hover { color: var(--bad); }
+  .chip .i { opacity: .85; }
+
+  #msg { min-height: 1.6em; margin: 16px 0 0; font-size: 15px; color: var(--muted); }
+  #msg.ok { color: var(--ok); }
+  #msg.bad { color: var(--bad); }
+
+  .i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+  .chip .i { width: 17px; height: 17px; }
+
+  :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent1) 80%, white); outline-offset: 3px; }
+  #q:focus-visible, #pass:focus-visible { outline: none; }
+
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root { --glass: rgba(30,24,70,.72); }
   }
-  #msg { min-height: 1.5em; margin: 16px 0 0; opacity: .85; }
-  #msg.bad { color: var(--warn); opacity: 1; }
-  :focus-visible { outline: 3px solid var(--cobalt); outline-offset: 2px; }
-  #q:focus-visible { outline: none; }
+  @media (max-width: 520px) {
+    body { padding: 28px 16px; }
+    .moon { right: 7vw; top: 3.5vh; width: 48px; }
+    .bar { padding-left: 18px; }
+    .bar .i.lead { display: none; }
+    #q { font-size: 18px; }
+    .go { padding: 0 18px; }
+    .go span { display: none; }
+    .kbdhint { display: none; }
+    .dock { width: 100%; padding: 10px; }
+    .sid { width: 100%; justify-content: center; }
+    .acts { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .chip { justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
-<main>
-  <h1>nimbus</h1>
-  <p class="lede">Browse through your own server. Cookies from the sites you visit are stored in your session here, not in your browser.</p>
+<div class="sky" aria-hidden="true">
+  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
+  <div class="moon"></div>
+  <div class="stars"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+  <div class="grain"></div>
+</div>
 
-  <form id="go" autocomplete="off">
-    <input id="q" type="text" placeholder="Search or enter an address" spellcheck="false" autofocus aria-label="Search or enter a web address">
-    <button type="submit">Go</button>
+<main>
+  <div class="brand rise" style="--i:0">
+    <svg class="logo" viewBox="0 0 84 56" aria-hidden="true">
+      <defs>
+        <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="var(--cloud-a)"/><stop offset="1" stop-color="var(--cloud-b)"/>
+        </linearGradient>
+      </defs>
+      <path fill="url(#cg)" opacity=".5" transform="translate(32 0) scale(.72)" d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/>
+      <path fill="url(#cg)" transform="translate(0 11)" d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/>
+    </svg>
+    <h1>nimbus</h1>
+  </div>
+  <p class="lede rise" style="--i:1">Browse through your own server. Cookies from the sites you visit stay in your session here, not in your browser.</p>
+
+  <form id="go" class="bar rise" style="--i:2" autocomplete="off">
+    <svg class="i lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="text" placeholder="Search or enter an address" spellcheck="false" autofocus aria-label="Search or enter an address">
+    <button class="go" type="submit" aria-label="Go"><span>Go</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </form>
+  <p class="hint rise" style="--i:3">Type a web address, or words to search.<span class="kbdhint"> Press <kbd>/</kbd> to jump back here.</span></p>
 
   <div id="pw" hidden>
     <input id="pass" type="password" placeholder="Server password" aria-label="Server password">
   </div>
 
-  <section class="session" aria-label="Session">
-    <span>Session <code id="sid">none yet</code></span>
-    <div class="actions">
-      <button type="button" id="copy">Copy ID</button>
-      <button type="button" id="load">Load ID</button>
-      <button type="button" id="new">New session</button>
-      <button type="button" id="wipe">Delete session</button>
+
+  <section class="dock glass rise" style="--i:4" aria-label="Session">
+    <span class="sid"><span class="dot" id="dot"></span><span class="l">Session</span><code id="sid" title="">none yet</code></span>
+    <div class="acts">
+      <button type="button" class="chip" id="copy"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy ID</button>
+      <button type="button" class="chip" id="load"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Load ID</button>
+      <button type="button" class="chip" id="new"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
+      <button type="button" class="chip danger" id="wipe"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Delete</button>
     </div>
   </section>
-  <p id="msg" role="status"></p>
+  <p id="msg" role="status" aria-live="polite"></p>
 </main>
 
 <script>
@@ -108,9 +280,15 @@
   function say(t) {
     var m = $('#msg');
     m.textContent = t || '';
-    m.className = /could not|does not|no session|needs a password|failed|no session to/i.test(t || '') ? 'bad' : '';
+    var bad = /could not|does not|no session|needs a password|failed|no session to|not look like/i.test(t || '');
+    var good = /copied|loaded|started|deleted/i.test(t || '');
+    m.className = bad ? 'bad' : good ? 'ok' : '';
   }
-  function show() { $('#sid').textContent = sid || 'none yet'; }
+  function show() {
+    $('#sid').textContent = sid ? sid.slice(0, 6) + '\u2026' + sid.slice(-4) : 'none yet';
+    $('#sid').title = sid;
+    $('#dot').className = 'dot' + (sid ? ' on' : '');
+  }
   function save(id) {
     sid = id || '';
     if (sid) localStorage.setItem('nimbus.sid', sid); else localStorage.removeItem('nimbus.sid');
@@ -146,16 +324,22 @@
     if (!v) return '';
     if (/^https?:\/\//i.test(v)) return v;
     if (/^[^\s\/]+\.[a-z]{2,}([\/:?#].*)?$/i.test(v) || /^localhost(:\d+)?/i.test(v)) return 'https://' + v;
-    return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(v);
+    return '__SEARCH_URL__' + encodeURIComponent(v);
   }
 
-  $('#go').addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var url = normalize($('#q').value);
+  async function go(value) {
+    var url = normalize(value);
     if (!url) return;
     if (sid && !(await exists(sid))) save('');
     if (!sid && !(await create())) return;
     location.href = '/p/' + sid + '/' + url;
+  }
+
+  $('#go').addEventListener('submit', function (e) { e.preventDefault(); go($('#q').value); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === '/' && document.activeElement !== $('#q') && document.activeElement !== $('#pass')) {
+      e.preventDefault(); $('#q').focus(); $('#q').select();
+    }
   });
 
   $('#copy').onclick = async function () {
@@ -181,6 +365,18 @@
     await api('session/delete', { id: sid });
     save(''); say('Session deleted. Its cookies are gone from the server.');
   };
+
+  // Sky drifts slightly with the pointer.
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    var layers = document.querySelectorAll('.moon, .orb');
+    addEventListener('pointermove', function (e) {
+      var x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
+      layers.forEach(function (el, i) {
+        var d = 12 + i * 10;
+        el.style.translate = (-x * d) + 'px ' + (-y * d) + 'px';
+      });
+    }, { passive: true });
+  }
 
   show();
   if (sid) exists(sid).then(function (ok) {

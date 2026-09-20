@@ -10,6 +10,8 @@
  *   HOST           default 127.0.0.1 (local only). Use 0.0.0.0 to serve other devices.
  *   PASSWORD       optional. If set, creating a session requires it.
  *   ALLOW_PRIVATE  set to 1 to let the proxy reach localhost / LAN addresses (off by default).
+ *   SEARCH_URL     search engine used when you type words instead of an address.
+ *                  Default https://html.duckduckgo.com/html/?q=   (your words are added on the end)
  *   DEBUG          set to 1 to log each request (host, path, status) and WebSocket events. Off by default.
  */
 
@@ -22,11 +24,16 @@ const path = require('path');
 const { Readable } = require('stream');
 const { WebSocketServer, WebSocket } = require('ws');
 
+// Prefer IPv4 and fall back between address families. Avoids connect timeouts on networks with broken IPv6.
+try { require('dns').setDefaultResultOrder('ipv4first'); } catch {}
+try { if (net.setDefaultAutoSelectFamily) net.setDefaultAutoSelectFamily(true); } catch {}
+
 const PORT = Number(process.env.PORT) || 8080;
 const HOST = process.env.HOST || '127.0.0.1';
 const PASSWORD = process.env.PASSWORD || '';
 const ALLOW_PRIVATE = process.env.ALLOW_PRIVATE === '1';
 const DEBUG = process.env.DEBUG === '1';
+const SEARCH_URL = process.env.SEARCH_URL || 'https://html.duckduckgo.com/html/?q=';
 const log = (...a) => { if (DEBUG) console.log(new Date().toISOString().slice(11, 19), ...a); };
 const SESSION_TTL = 3 * 24 * 60 * 60 * 1000; // idle sessions are deleted after 3 days
 const MAX_BODY = 50 * 1024 * 1024;
@@ -386,7 +393,7 @@ function clientMain(cfg) {
     if (!v) return '';
     if (/^https?:\/\//i.test(v)) return v;
     if (/^[^\s\/]+\.[a-z]{2,}([\/:?#].*)?$/i.test(v) || /^localhost(:\d+)?/i.test(v)) return 'https://' + v;
-    return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(v);
+    return cfg.search + encodeURIComponent(v);
   }
   if (window.top === window) {
     document.addEventListener('DOMContentLoaded', function () {
@@ -395,15 +402,23 @@ function clientMain(cfg) {
       var root = host.attachShadow({ mode: 'open' });
       root.innerHTML =
         '<style>' +
-        '*{box-sizing:border-box;font:13px/1 system-ui,sans-serif}' +
-        '.p{display:flex;gap:6px;align-items:center;background:#10203a;color:#fff;border-radius:999px;padding:6px;box-shadow:0 4px 18px rgba(0,0,0,.35)}' +
-        'button{background:#2f5bea;color:#fff;border:0;border-radius:999px;height:28px;padding:0 12px;cursor:pointer}' +
-        '.t{background:transparent}' +
+        '*{box-sizing:border-box;font:13px/1 ui-rounded,system-ui,sans-serif}' +
+        '.p{display:flex;gap:6px;align-items:center;color:#f5f2ff;padding:5px;border-radius:999px;' +
+        'background:rgba(16,14,48,.78);-webkit-backdrop-filter:blur(16px) saturate(150%);backdrop-filter:blur(16px) saturate(150%);' +
+        'border:1px solid rgba(255,255,255,.22);box-shadow:0 10px 30px rgba(4,6,30,.45),inset 0 1px 0 rgba(255,255,255,.18)}' +
+        'button{border:0;border-radius:999px;height:30px;padding:0 14px;cursor:pointer;font-weight:700;color:#0a0d2b;' +
+        'background:linear-gradient(135deg,#7df3ff,#b18cff)}' +
+        'button:hover{filter:brightness(1.1)}' +
+        '.t{display:flex;align-items:center;gap:7px;background:transparent;color:#f5f2ff;padding:0 10px 0 8px}' +
+        '.t:hover{filter:none;background:rgba(255,255,255,.1)}' +
+        '.h{background:rgba(255,255,255,.14);color:#f5f2ff}' +
         'input,.go,.h{display:none}' +
-        'input{width:min(60vw,360px);height:28px;border:0;border-radius:999px;padding:0 12px;background:#fff;color:#10203a;outline:none}' +
+        'input{width:min(60vw,380px);height:30px;border:0;border-radius:999px;padding:0 14px;background:rgba(255,255,255,.94);color:#0d1b3d;outline:none}' +
+        'input:focus{box-shadow:0 0 0 3px rgba(125,243,255,.5)}' +
         '.o input,.o .go,.o .h{display:block}' +
         '</style>' +
-        '<div class="p"><button class="t" title="Address bar">nimbus</button>' +
+        '<div class="p"><button class="t" title="Address bar">' +
+        '<svg width="20" height="14" viewBox="0 0 64 44" aria-hidden="true"><path fill="#c9c3ff" d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/></svg>nimbus</button>' +
         '<input placeholder="Search or enter a web address" spellcheck="false">' +
         '<button class="go">Go</button><button class="h">Home</button></div>';
       var box = root.querySelector('.p');
@@ -432,7 +447,7 @@ function clientMain(cfg) {
 const CLIENT_SRC = clientMain.toString();
 
 function clientScript(sid, url, cookies) {
-  const cfg = JSON.stringify({ sid, url, cookies }).replace(/</g, '\\u003c');
+  const cfg = JSON.stringify({ sid, url, cookies, search: SEARCH_URL }).replace(/</g, '\\u003c');
   return `<script>(${CLIENT_SRC})(${cfg});</script>`;
 }
 
@@ -545,8 +560,15 @@ async function handleProxy(req, res, sid, targetStr, ref) {
   try {
     up = await fetch(target, { method, headers, body, redirect: 'manual', signal: AbortSignal.timeout(30000) });
   } catch (e) {
-    log('FETCH FAILED', method, target.host + target.pathname, (e.cause && e.cause.code) || e.message);
-    return send(res, 502, `Could not reach ${target.host}: ${(e.cause && e.cause.code) || e.message}`);
+    const code = (e.cause && e.cause.code) || e.name || e.message;
+    log('FETCH FAILED', method, target.host + target.pathname, code);
+    const why = {
+      UND_ERR_CONNECT_TIMEOUT: 'the connection timed out. That site may be blocked from the network this server is on, or it may be down.',
+      TimeoutError: 'it took longer than 30 seconds to answer.',
+      ENOTFOUND: 'that address could not be looked up.',
+      ECONNREFUSED: 'the connection was refused.',
+    }[code] || code;
+    return send(res, 502, `Could not reach ${target.host}: ${why}`);
   }
   log(method, target.host + target.pathname.slice(0, 70), up.status, up.headers.get('content-type') || '');
   if (DEBUG && [401, 403, 429, 503].includes(up.status) && up.body) {
@@ -647,7 +669,10 @@ async function handleApi(req, res) {
 
 /* -------------------------------------------------------------------- server */
 
-const INDEX = fs.readFileSync(path.join(__dirname, 'public', 'index.html'));
+const INDEX = Buffer.from(
+  fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8')
+    .replace('__SEARCH_URL__', () => SEARCH_URL.replace(/\\/g, '\\\\').replace(/'/g, "\\'"))
+);
 
 const server = http.createServer(async (req, res) => {
   try {

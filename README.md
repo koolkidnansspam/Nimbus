@@ -17,6 +17,11 @@ Then open http://127.0.0.1:8080
 - `HOST`: default 127.0.0.1 (this computer only). Use `0.0.0.0` to allow other devices.
 - `PASSWORD`: if set, starting a session requires it. Set this if the server is on the internet.
 - `ALLOW_PRIVATE=1`: lets the proxy reach localhost and home-network addresses. Off by default.
+- `SEARCH_URL`: search engine used when you type words instead of an address. Default `https://html.duckduckgo.com/html/?q=` (your words are added on the end). Example: `SEARCH_URL=https://www.bing.com/search?q=`
+- `DEBUG=1`: logs each request (site, path, status) and WebSocket events, and shows what a site says when it refuses you (403). For troubleshooting. Off by default because it records what you browse.
+  - Mac/Linux: `DEBUG=1 node server.js`
+  - Windows (cmd): `set DEBUG=1&& node server.js`
+  - Windows (PowerShell): `$env:DEBUG=1; node server.js`
 
 Example: `HOST=0.0.0.0 PASSWORD=pick-something node server.js`
 
@@ -27,9 +32,14 @@ Example: `HOST=0.0.0.0 PASSWORD=pick-something node server.js`
 - Pages are rewritten so links, images, styles, forms, fetch, XHR and WebSockets all go back through the proxy.
 - Only a fixed set of request headers is forwarded, so your IP address (X-Forwarded-For) and browser cookies are not passed on.
 
+## Site fixes
+
+Some sites check which address they are running on. `SITE_PATCHES` in `server.js` holds small edits for these. Right now it has one, for Pokemon Showdown. If a fix stops working after the site updates, run with `DEBUG=1` and look for `SITE PATCH DID NOT MATCH`.
+
 ## Limits
 
 - No service workers or Google sign-in. Heavy web apps (YouTube, Discord, Netflix) will not work. WebSocket apps such as browser games may work; it depends on the site.
+- Pages that add HTML with scripts (innerHTML) can load a few items straight from the site instead of through the proxy.
 - localStorage is shared by all sites in a browser, since they all sit on the proxy's address. Sites do not get their own storage.
 - All sites in one session share one origin, so a site you visit could in theory reach other sites you are logged into in the same session. Use it for everyday browsing, not banking, and use a new session for anything sensitive.
 - If you run this on a remote server, the server owner (you) can see the traffic. Nothing here is encrypted between the proxy and you unless you put HTTPS in front of it.
