@@ -1,102 +1,203 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dusk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="dark light">
-<meta name="theme-color" content="#080b25">
+<meta name="theme-color" id="tc" content="#080b25">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 44'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237df3ff'/%3E%3Cstop offset='1' stop-color='%23b18cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' d='M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z'/%3E%3C/svg%3E">
 <title>Nimbus</title>
+<script>
+  // Pick the theme before the first paint so there is no flash.
+  (function () {
+    try {
+      var pref = localStorage.getItem('nimbus.theme') || 'auto';
+      var eff = pref === 'auto' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'dusk') : pref;
+      document.documentElement.dataset.theme = eff;
+      document.documentElement.dataset.pref = pref;
+    } catch (e) {}
+  })();
+</script>
 <style>
-  /* Dusk by default, daytime sky when the system is set to light. */
-  :root {
-    --ink: #f5f2ff; --muted: rgba(245,242,255,.76);
+  @property --sky1    { syntax: '<color>'; inherits: true; initial-value: #080b25; }
+  @property --sky2    { syntax: '<color>'; inherits: true; initial-value: #231457; }
+  @property --sky3    { syntax: '<color>'; inherits: true; initial-value: #5a2a86; }
+  @property --horizon { syntax: '<color>'; inherits: true; initial-value: #ff8f6b; }
+
+  /* ---------- themes ---------- */
+  :root, :root[data-theme="dusk"] {
     --sky1: #080b25; --sky2: #231457; --sky3: #5a2a86; --horizon: #ff8f6b;
-    --glass: rgba(255,255,255,.08); --glass-hi: rgba(255,255,255,.15); --edge: rgba(255,255,255,.2);
+    --ink: #f5f2ff; --muted: rgba(245,242,255,.78);
+    --glass: rgba(255,255,255,.09); --glass-hi: rgba(255,255,255,.17); --edge: rgba(255,255,255,.22);
     --accent1: #7df3ff; --accent2: #b18cff; --on-accent: #0a0d2b;
     --orb1: rgba(124,92,255,.55); --orb2: rgba(56,214,255,.30); --orb3: rgba(255,120,110,.38);
-    --stars: .85; --cloud: rgba(255,255,255,.07);
+    --stars: .85; --aurora: 0;
+    --cloud: rgba(255,196,214,.11); --hill-far: #3b1d70; --hill-near: #170c38;
     --shadow: 0 24px 60px rgba(4,6,30,.55);
     --ok: #86f5bb; --bad: #ffb491;
-    --title-a: #ffffff; --title-b: #b8b2ff;
-    --cloud-a: #ffffff; --cloud-b: #b8b2ff;
-    --orb-a: #ffffff; --orb-b: #c9d1ff; --orb-glow: rgba(160,170,255,.38); --orb-glow2: rgba(140,110,255,.22);
-    --chip: rgba(0,0,0,.16); --logo-glow: rgba(140,120,255,.55);
+    --title-a: #ffffff; --title-b: #b8b2ff; --logo-a: #ffffff; --logo-b: #b8b2ff; --logo-glow: rgba(140,120,255,.6);
+    --body-a: #ffffff; --body-b: #c9d1ff; --body-glow: rgba(160,170,255,.4); --body-glow2: rgba(140,110,255,.24);
+    --chip: rgba(0,0,0,.18);
   }
-  @media (prefers-color-scheme: light) {
-    :root {
-      --ink: #0d1b3d; --muted: rgba(13,27,61,.74);
-      --sky1: #5da8ff; --sky2: #a9d2ff; --sky3: #e6f2ff; --horizon: #ffe4bd;
-      --glass: rgba(255,255,255,.55); --glass-hi: rgba(255,255,255,.8); --edge: rgba(255,255,255,.95);
-      --accent1: #2f5bea; --accent2: #5f80ff; --on-accent: #fff;
-      --orb1: rgba(255,255,255,.75); --orb2: rgba(120,180,255,.55); --orb3: rgba(255,214,150,.65);
-      --stars: 0; --cloud: rgba(255,255,255,.6);
-      --shadow: 0 24px 60px rgba(40,80,150,.25);
-      --ok: #0a7a45; --bad: #b3410a;
-      --title-a: #0d1b3d; --title-b: #2f5bea;
-      --cloud-a: #ffffff; --cloud-b: #8fbaff;
-      --orb-a: #fffef0; --orb-b: #ffd873; --orb-glow: rgba(255,255,255,.85); --orb-glow2: rgba(255,232,180,.6);
-      --chip: rgba(13,27,61,.08); --logo-glow: rgba(47,91,234,.4);
-    }
+  :root[data-theme="day"] {
+    --sky1: #4f9bff; --sky2: #9fcdff; --sky3: #e4f1ff; --horizon: #ffe7c2;
+    --ink: #0d1b3d; --muted: rgba(13,27,61,.76);
+    --glass: rgba(255,255,255,.58); --glass-hi: rgba(255,255,255,.85); --edge: rgba(255,255,255,.95);
+    --accent1: #2f5bea; --accent2: #5f80ff; --on-accent: #fff;
+    --orb1: rgba(255,255,255,.75); --orb2: rgba(120,180,255,.55); --orb3: rgba(255,214,150,.65);
+    --stars: 0; --aurora: 0;
+    --cloud: rgba(255,255,255,.92); --hill-far: rgba(255,255,255,.7); --hill-near: #8dbaf5;
+    --shadow: 0 24px 60px rgba(40,80,150,.26);
+    --ok: #0a7a45; --bad: #b3410a;
+    --title-a: #0d1b3d; --title-b: #2f5bea; --logo-a: #ffffff; --logo-b: #8fbaff; --logo-glow: rgba(47,91,234,.4);
+    --body-a: #fffef0; --body-b: #ffd873; --body-glow: rgba(255,255,255,.9); --body-glow2: rgba(255,232,180,.6);
+    --chip: rgba(13,27,61,.08);
   }
+  :root[data-theme="night"] {
+    --sky1: #020616; --sky2: #071431; --sky3: #0b2a4a; --horizon: #14566a;
+    --ink: #eaf6ff; --muted: rgba(234,246,255,.76);
+    --glass: rgba(255,255,255,.07); --glass-hi: rgba(255,255,255,.15); --edge: rgba(255,255,255,.18);
+    --accent1: #6ff5d8; --accent2: #7aa8ff; --on-accent: #03121e;
+    --orb1: rgba(60,120,255,.35); --orb2: rgba(40,220,190,.22); --orb3: rgba(120,90,255,.28);
+    --stars: 1; --aurora: .6;
+    --cloud: rgba(150,185,255,.07); --hill-far: #0b2a43; --hill-near: #040e1b;
+    --shadow: 0 24px 60px rgba(0,4,16,.65);
+    --ok: #86f5bb; --bad: #ffb491;
+    --title-a: #ffffff; --title-b: #a9dcff; --logo-a: #ffffff; --logo-b: #9fd2ff; --logo-glow: rgba(90,200,255,.5);
+    --body-a: #fbfdff; --body-b: #d5e4ff; --body-glow: rgba(170,200,255,.4); --body-glow2: rgba(110,150,255,.2);
+    --chip: rgba(0,0,0,.28);
+  }
+  html { transition: --sky1 .9s, --sky2 .9s, --sky3 .9s, --horizon .9s; }
 
   * { box-sizing: border-box; }
   html { height: 100%; }
   body {
-    margin: 0; min-height: 100%; color: var(--ink);
-    background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 42%, var(--sky3) 76%, var(--horizon) 100%) fixed;
+    margin: 0; min-height: 100%; color: var(--ink); overflow-x: hidden;
+    background: linear-gradient(180deg, var(--sky1) 0%, var(--sky2) 42%, var(--sky3) 74%, var(--horizon) 100%) fixed;
     font: 16px/1.5 ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI", system-ui, sans-serif;
     display: grid; grid-template-columns: minmax(0, 1fr); place-items: center;
-    padding: 40px 20px; overflow-x: hidden;
+    padding: 72px 20px 16vh;
   }
 
   /* ---------- sky ---------- */
   .sky { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-  .orb { position: absolute; border-radius: 50%; filter: blur(70px); will-change: transform; }
+  .sky > * { position: absolute; }
+  [data-depth] { transition: translate .9s cubic-bezier(.2,.7,.2,1); }
+
+  .orb { border-radius: 50%; filter: blur(70px); will-change: transform; }
   .o1 { width: 52vw; height: 52vw; left: -14vw; top: -18vw; background: var(--orb1); animation: drift 38s ease-in-out infinite alternate; }
   .o2 { width: 44vw; height: 44vw; right: -12vw; top: 8vh; background: var(--orb2); animation: drift 46s ease-in-out -12s infinite alternate-reverse; }
   .o3 { width: 60vw; height: 34vw; left: 14vw; bottom: -18vw; background: var(--orb3); animation: drift 52s ease-in-out -20s infinite alternate; }
   @keyframes drift { to { transform: translate3d(7vw, -5vh, 0) scale(1.14); } }
 
-  .moon {
-    position: absolute; right: 11vw; top: 9vh; width: clamp(60px, 7vw, 104px); aspect-ratio: 1; border-radius: 50%;
-    background: radial-gradient(circle at 35% 32%, var(--orb-a), var(--orb-b));
-    box-shadow: 0 0 50px 16px var(--orb-glow), 0 0 170px 70px var(--orb-glow2);
-    transition: translate .8s cubic-bezier(.2,.7,.2,1);
+  .aurora {
+    left: -10%; right: -10%; height: 17vh; border-radius: 50%; opacity: var(--aurora);
+    filter: blur(32px); mix-blend-mode: screen; transition: opacity .9s;
+    background: linear-gradient(90deg, transparent 0%, rgba(70,255,190,.6) 25%, rgba(90,170,255,.5) 55%, rgba(190,110,255,.5) 80%, transparent 100%);
   }
-  .orb { transition: translate .9s cubic-bezier(.2,.7,.2,1); }
+  .a1 { top: 4vh; animation: aur 16s ease-in-out infinite alternate; }
+  .a2 { top: 12vh; height: 12vh; opacity: calc(var(--aurora) * .7); animation: aur 22s ease-in-out -8s infinite alternate-reverse; }
+  @keyframes aur { from { transform: translateX(-6vw) skewX(-8deg) scaleY(.85); } to { transform: translateX(6vw) skewX(8deg) scaleY(1.15); } }
+
+  .moon {
+    right: 11vw; top: 9vh; width: clamp(56px, 7vw, 100px); aspect-ratio: 1; border-radius: 50%;
+    background: radial-gradient(circle at 35% 32%, var(--body-a), var(--body-b));
+    box-shadow: 0 0 50px 16px var(--body-glow), 0 0 170px 70px var(--body-glow2);
+  }
+
   .stars {
-    position: absolute; inset: 0 0 42% 0; opacity: var(--stars);
+    inset: 0 0 42% 0; opacity: var(--stars); transition: opacity .9s;
     background-image:
-      radial-gradient(1.6px 1.6px at 8% 18%, #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 17% 44%, #fff 50%, transparent 52%),
-      radial-gradient(1.8px 1.8px at 26% 12%, #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 34% 34%, #fff 50%, transparent 52%),
-      radial-gradient(1.5px 1.5px at 47% 8%,  #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 56% 27%, #fff 50%, transparent 52%),
-      radial-gradient(1.8px 1.8px at 66% 15%, #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 74% 40%, #fff 50%, transparent 52%),
-      radial-gradient(1.5px 1.5px at 83% 10%, #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 91% 30%, #fff 50%, transparent 52%),
-      radial-gradient(1.4px 1.4px at 96% 52%, #fff 50%, transparent 52%),
-      radial-gradient(1.2px 1.2px at 4% 58%,  #fff 50%, transparent 52%);
+      radial-gradient(1.6px 1.6px at 8% 18%, #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 17% 44%, #fff 50%, transparent 52%),
+      radial-gradient(1.8px 1.8px at 26% 12%, #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 34% 34%, #fff 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 47% 8%,  #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 56% 27%, #fff 50%, transparent 52%),
+      radial-gradient(1.8px 1.8px at 66% 15%, #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 74% 40%, #fff 50%, transparent 52%),
+      radial-gradient(1.5px 1.5px at 83% 10%, #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 91% 30%, #fff 50%, transparent 52%),
+      radial-gradient(1.4px 1.4px at 96% 52%, #fff 50%, transparent 52%), radial-gradient(1.2px 1.2px at 4% 58%,  #fff 50%, transparent 52%),
+      radial-gradient(1px 1px at 12% 8%, #fff 50%, transparent 52%), radial-gradient(1px 1px at 41% 22%, #fff 50%, transparent 52%),
+      radial-gradient(1px 1px at 61% 6%, #fff 50%, transparent 52%), radial-gradient(1px 1px at 88% 20%, #fff 50%, transparent 52%);
     animation: twinkle 7s ease-in-out infinite alternate;
   }
-  @keyframes twinkle { from { opacity: calc(var(--stars) * .55); } to { opacity: var(--stars); } }
+  @keyframes twinkle { from { filter: brightness(.6); } to { filter: brightness(1.15); } }
 
-  .cloud { position: absolute; bottom: -6vh; border-radius: 50%; background: var(--cloud); filter: blur(34px); }
-  .c1 { left: -12vw; width: 58vw; height: 24vh; animation: sway 60s ease-in-out infinite alternate; }
-  .c2 { right: -16vw; width: 66vw; height: 30vh; bottom: -10vh; animation: sway 72s ease-in-out -30s infinite alternate-reverse; }
-  .c3 { left: 24vw; width: 46vw; height: 18vh; bottom: 2vh; opacity: .7; animation: sway 84s ease-in-out -10s infinite alternate; }
-  @keyframes sway { to { transform: translateX(9vw); } }
+  .shoots { inset: 0; opacity: var(--stars); transition: opacity .9s; }
+  .shoot {
+    position: absolute; width: 140px; height: 2px; border-radius: 2px; opacity: 0;
+    background: linear-gradient(90deg, transparent, #fff); transform: rotate(-28deg);
+    animation: shoot 12s linear infinite;
+  }
+  .s1 { top: 12%; left: 16%; }
+  .s2 { top: 24%; left: 58%; animation-duration: 17s; animation-delay: 7s; }
+  @keyframes shoot {
+    0%, 90% { opacity: 0; transform: translate(0, 0) rotate(-28deg); }
+    91% { opacity: 1; }
+    100% { opacity: 0; transform: translate(420px, 230px) rotate(-28deg); }
+  }
+
+  .dcloud { left: var(--x); top: var(--y); width: var(--w); height: auto; fill: var(--cloud); animation: sway var(--d) ease-in-out infinite alternate; transition: fill .9s; }
+  @keyframes sway { from { transform: translateX(-13vw); } to { transform: translateX(13vw); } }
+
+  .hills { left: -3%; bottom: -1px; width: 106%; height: clamp(150px, 26vh, 300px); display: block; }
+  .hills.far  { fill: var(--hill-far); }
+  .hills.near { fill: var(--hill-near); height: clamp(110px, 19vh, 220px); }
+  .hills path { transition: fill .9s; }
 
   .grain {
-    position: absolute; inset: 0; opacity: .07; mix-blend-mode: overlay;
+    inset: 0; opacity: .07; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   }
 
-  /* ---------- layout ---------- */
-  main { width: min(720px, 100%); text-align: center; }
+  /* ---------- shared glass ---------- */
+  .glass {
+    background: var(--glass); border: 1px solid var(--edge);
+    -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%);
+    box-shadow: 0 10px 30px rgba(4,6,30,.18), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- top controls ---------- */
+  .top { position: fixed; top: 16px; right: 16px; z-index: 20; display: flex; align-items: center; gap: 10px; }
+  .icon-btn, .pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px; height: 42px; border-radius: 999px;
+    color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; transition: background .2s, transform .2s;
+  }
+  .icon-btn { width: 42px; }
+  .pill { padding: 0 14px 0 13px; }
+  .icon-btn:hover, .pill:hover { background: var(--glass-hi); transform: translateY(-1px); }
+  .ti { display: none; }
+  :root[data-theme="day"] .t-day, :root[data-theme="dusk"] .t-dusk, :root[data-theme="night"] .t-night { display: block; }
+  #sid.mono { font: 13.5px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: transparent; border: 1.5px solid var(--muted); }
+  .dot.on { background: var(--ok); border-color: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .pill .chev { width: 15px; height: 15px; opacity: .7; transition: transform .2s; }
+  .pill[aria-expanded="true"] .chev { transform: rotate(180deg); }
+
+  .menu-wrap { position: relative; }
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 10px); width: min(292px, calc(100vw - 32px)); padding: 8px; border-radius: 20px;
+    background: color-mix(in srgb, var(--sky2) 93%, var(--glass)); -webkit-backdrop-filter: blur(26px); backdrop-filter: blur(26px);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.2);
+    transform-origin: top right; animation: pop .22s cubic-bezier(.2,.8,.2,1);
+  }
+  :root[data-theme="day"] .menu { background: rgba(255,255,255,.94); }
+  .menu[hidden] { display: none; }
+  @keyframes pop { from { opacity: 0; transform: scale(.94) translateY(-6px); } }
+  .menu-head { padding: 10px 12px 12px; }
+  .menu-head .l { display: block; color: var(--muted); font-size: 12.5px; margin-bottom: 4px; }
+  .menu-head code { font: 13px ui-monospace, Menlo, Consolas, monospace; overflow-wrap: anywhere; }
+  .item {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 11px 12px; border: 0; border-radius: 13px; cursor: pointer;
+    background: transparent; color: var(--ink); font: inherit; font-size: 15px; text-align: left; transition: background .15s;
+  }
+  .item:hover, .item:focus-visible { background: var(--glass-hi); }
+  .item.danger:hover { color: var(--bad); }
+  .item .i { width: 18px; height: 18px; opacity: .85; }
+  .sep { height: 1px; margin: 6px 8px; background: var(--edge); opacity: .7; }
+  .note { padding: 8px 12px 10px; color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+
+  /* ---------- hero ---------- */
+  main { position: relative; z-index: 1; width: min(720px, 100%); text-align: center; }
   .rise { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; animation-delay: calc(var(--i, 0) * 80ms); }
   @keyframes rise { from { opacity: 0; transform: translateY(16px); } }
 
@@ -104,8 +205,7 @@
   .logo { width: clamp(58px, 12vw, 108px); height: auto; filter: drop-shadow(0 10px 26px var(--logo-glow)); animation: bob 7s ease-in-out infinite alternate; }
   @keyframes bob { to { transform: translateY(-6px); } }
   h1 {
-    margin: 0; font-size: clamp(60px, 14vw, 116px); font-weight: 800; line-height: .95;
-    letter-spacing: -.055em; padding-bottom: .06em;
+    margin: 0; font-size: clamp(60px, 14vw, 116px); font-weight: 800; line-height: .95; letter-spacing: -.055em; padding-bottom: .06em;
     background:
       linear-gradient(105deg, transparent 42%, rgba(255,255,255,.75) 50%, transparent 58%) no-repeat 150% 0 / 250% 100%,
       linear-gradient(180deg, var(--title-a) 30%, var(--title-b) 110%);
@@ -117,13 +217,9 @@
 
   /* ---------- address bar ---------- */
   .bar {
-    display: flex; align-items: center; gap: 12px; padding: 9px 9px 9px 26px; border-radius: 999px;
-    background: var(--glass); border: 1px solid var(--edge);
-    -webkit-backdrop-filter: blur(20px) saturate(150%); backdrop-filter: blur(20px) saturate(150%);
-    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.22);
-    transition: box-shadow .25s, border-color .25s;
+    position: relative; display: flex; align-items: center; gap: 12px; padding: 9px 9px 9px 26px; border-radius: 999px;
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.22); transition: box-shadow .25s;
   }
-  .bar { position: relative; }
   .bar::before {
     content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 2px; pointer-events: none;
     background: linear-gradient(110deg, var(--accent1), var(--accent2), #ff8fb1, var(--accent1)); background-size: 300% 100%;
@@ -132,20 +228,23 @@
     opacity: 0; transition: opacity .3s; animation: flow 7s linear infinite;
   }
   @keyframes flow { to { background-position: 300% 0; } }
+  .bar::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(300px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.16), transparent 62%);
+  }
+  .bar:hover::after { opacity: 1; }
   .bar:focus-within::before { opacity: 1; }
   .bar:focus-within { box-shadow: var(--shadow), 0 0 60px -10px color-mix(in srgb, var(--accent2) 55%, transparent); }
-  .bar .i { flex: none; opacity: .75; }
-  #q {
-    flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink);
-    font: inherit; font-size: 21px; padding: 16px 4px;
-  }
-  #q::placeholder { color: var(--muted); opacity: .85; }
+  .bar .i.lead { opacity: .75; }
+  .field { position: relative; flex: 1; min-width: 0; text-align: left; }
+  #q { width: 100%; border: 0; outline: 0; background: transparent; color: var(--ink); font: inherit; font-size: 21px; padding: 16px 4px; }
+  .ph { position: absolute; inset: 0 0 0 4px; display: flex; align-items: center; pointer-events: none; color: var(--muted); font-size: 21px; white-space: nowrap; overflow: hidden; transition: opacity .35s, transform .35s; }
+  .ph.out { opacity: 0; transform: translateY(6px); }
+  #q:not(:placeholder-shown) + .ph { opacity: 0; }
   .go {
-    flex: none; display: inline-flex; align-items: center; gap: 8px; height: 58px; padding: 0 30px;
-    border: 0; border-radius: 999px; cursor: pointer; font: inherit; font-weight: 700; font-size: 17px;
-    color: var(--on-accent); background: linear-gradient(135deg, var(--accent1), var(--accent2));
-    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent2) 45%, transparent);
-    transition: transform .18s, filter .18s;
+    flex: none; display: inline-flex; align-items: center; gap: 8px; height: 58px; padding: 0 30px; border: 0; border-radius: 999px; cursor: pointer;
+    font: inherit; font-weight: 700; font-size: 17px; color: var(--on-accent); background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--accent2) 45%, transparent); transition: transform .18s, filter .18s;
   }
   .go:hover { transform: translateY(-1px); filter: brightness(1.08); }
   .go:active { transform: translateY(1px); }
@@ -153,72 +252,52 @@
   .go:hover .i { transform: translateX(3px); }
 
   .hint { text-wrap: balance; margin: 14px 0 0; color: var(--muted); font-size: 14px; }
-  kbd {
-    font: 12px ui-monospace, Menlo, Consolas, monospace; padding: 1px 7px; border-radius: 6px;
-    background: var(--glass); border: 1px solid var(--edge);
-  }
+  kbd { font: 12px ui-monospace, Menlo, Consolas, monospace; padding: 1px 7px; border-radius: 6px; background: var(--glass); border: 1px solid var(--edge); }
 
   #pw { margin-top: 14px; }
-  #pass {
-    width: 100%; padding: 14px 22px; border-radius: 999px; font: inherit; color: var(--ink); outline: 0;
-    background: var(--glass); border: 1px solid var(--edge);
-    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
-  }
+  #pass { width: 100%; padding: 14px 22px; border-radius: 999px; font: inherit; color: var(--ink); outline: 0; }
   #pass:focus { border-color: var(--accent1); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent1) 28%, transparent); }
   #pass::placeholder { color: var(--muted); }
 
-  .glass {
-    background: var(--glass); border: 1px solid var(--edge);
-    -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(4,6,30,.18), inset 0 1px 0 rgba(255,255,255,.18);
+  /* ---------- toast and launch overlay ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 26px); z-index: 30; transform: translateX(-50%);
+    max-width: min(92vw, 580px); padding: 12px 20px; border-radius: 16px; font-size: 15px; text-align: center; color: var(--ink);
+    background: color-mix(in srgb, var(--sky2) 88%, var(--glass)); box-shadow: var(--shadow);
   }
+  :root[data-theme="day"] .toast { background: rgba(255,255,255,.94); }
+  .toast[hidden] { display: none; }
+  .toast:not([hidden]) { animation: toast .35s cubic-bezier(.2,.8,.2,1); }
+  .toast.ok { color: var(--ok); } .toast.bad { color: var(--bad); }
+  @keyframes toast { from { opacity: 0; transform: translate(-50%, 14px); } }
 
-  /* ---------- session dock ---------- */
-  .dock {
-    display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 10px;
-    margin: 44px auto 0; padding: 10px 12px; border-radius: 22px; width: fit-content; max-width: 100%;
+  .launch {
+    position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; align-content: center; gap: 22px; text-align: center;
+    background: color-mix(in srgb, var(--sky2) 55%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    animation: fadein .3s ease both;
   }
-  .sid { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 14px; background: var(--chip); }
-  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); opacity: .5; }
-  .dot.on { background: var(--ok); opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 25%, transparent); }
-  .sid .l { color: var(--muted); font-size: 14px; }
-  code { font: 14px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; }
-  .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: 12px; cursor: pointer;
-    color: var(--ink); background: transparent; border: 1px solid transparent; font: inherit; font-size: 14px;
-    transition: background .18s, border-color .18s;
-  }
-  .chip:hover { background: var(--glass-hi); border-color: var(--edge); }
-  .chip.danger:hover { color: var(--bad); }
-  .chip .i { opacity: .85; }
-
-  #msg { min-height: 1.6em; margin: 16px 0 0; font-size: 15px; color: var(--muted); }
-  #msg.ok { color: var(--ok); }
-  #msg.bad { color: var(--bad); }
-
-  .i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
-  .chip .i { width: 17px; height: 17px; }
+  .launch[hidden] { display: none; }
+  @keyframes fadein { from { opacity: 0; } }
+  .launch .ring { position: relative; width: 84px; height: 84px; }
+  .launch .ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 3px solid var(--edge); border-top-color: var(--accent1); animation: spin .9s linear infinite; }
+  .launch .ring svg { position: absolute; inset: 22px 18px; width: 48px; height: 36px; fill: var(--logo-a); animation: bob 1.4s ease-in-out infinite alternate; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .launch p { margin: 0; font-size: 18px; color: var(--muted); }
+  .launch b { color: var(--ink); }
 
   :focus-visible { outline: 3px solid color-mix(in srgb, var(--accent1) 80%, white); outline-offset: 3px; }
   #q:focus-visible, #pass:focus-visible { outline: none; }
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .glass { background: rgba(30,24,70,.72); } }
 
-  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    :root { --glass: rgba(30,24,70,.72); }
-  }
   @media (max-width: 520px) {
-    body { padding: 28px 16px; }
-    .moon { right: 7vw; top: 3.5vh; width: 48px; }
+    body { padding: 76px 16px 14vh; }
+    .top { top: 12px; right: 12px; }
+    .moon { right: 7vw; top: 12vh; width: 46px; }
+    .dcloud { width: calc(var(--w) * .62); }
     .bar { padding-left: 18px; }
-    .bar .i.lead { display: none; }
-    #q { font-size: 18px; }
+    .bar .i.lead, .go span, .kbdhint { display: none; }
+    #q, .ph { font-size: 18px; }
     .go { padding: 0 18px; }
-    .go span { display: none; }
-    .kbdhint { display: none; }
-    .dock { width: 100%; padding: 10px; }
-    .sid { width: 100%; justify-content: center; }
-    .acts { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
-    .chip { justify-content: center; }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -227,11 +306,41 @@
 </head>
 <body>
 <div class="sky" aria-hidden="true">
-  <div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
-  <div class="moon"></div>
+  <div class="orb o1" data-depth="10"></div><div class="orb o2" data-depth="16"></div><div class="orb o3" data-depth="12"></div>
+  <div class="aurora a1" data-depth="18"></div><div class="aurora a2" data-depth="12"></div>
+  <div class="moon" data-depth="26"></div>
   <div class="stars"></div>
-  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+  <div class="shoots"><span class="shoot s1"></span><span class="shoot s2"></span></div>
+  <svg class="dcloud" style="--x:4%;--y:13%;--w:230px;--d:80s" viewBox="0 0 64 44" data-depth="14"><path id="cl" d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/></svg>
+  <svg class="dcloud" style="--x:64%;--y:63%;--w:300px;--d:110s" viewBox="0 0 64 44" data-depth="8"><use href="#cl"/></svg>
+  <svg class="dcloud" style="--x:20%;--y:52%;--w:190px;--d:95s" viewBox="0 0 64 44" data-depth="20"><use href="#cl"/></svg>
+  <svg class="dcloud" style="--x:78%;--y:8%;--w:150px;--d:70s" viewBox="0 0 64 44" data-depth="22"><use href="#cl"/></svg>
+  <svg class="hills far" viewBox="0 0 1440 320" preserveAspectRatio="none" data-depth="6"><path d="M0 190C120 150 240 120 380 150C520 180 600 230 760 210C920 190 1000 120 1160 130C1300 140 1380 180 1440 170V320H0Z"/></svg>
+  <svg class="hills near" viewBox="0 0 1440 320" preserveAspectRatio="none" data-depth="12"><path d="M0 250C140 215 260 215 400 240C540 265 640 285 800 260C960 235 1060 205 1200 220C1320 232 1390 250 1440 245V320H0Z"/></svg>
   <div class="grain"></div>
+</div>
+
+<div class="top">
+  <button class="icon-btn glass" id="theme" type="button" aria-label="Change theme">
+    <svg class="i ti t-day" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    <svg class="i ti t-dusk" viewBox="0 0 24 24"><path d="M6 17a6 6 0 0 1 12 0M12 5v3M4.2 10.2l1.6 1.4M19.8 10.2l-1.6 1.4M2 17h20M6 21h12"/></svg>
+    <svg class="i ti t-night" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>
+  </button>
+  <div class="menu-wrap">
+    <button class="pill glass" id="pill" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
+      <span class="dot" id="dot"></span><span id="sid">No session</span>
+      <svg class="i chev" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="menu" id="menu" role="menu" hidden>
+      <div class="menu-head"><span class="l">Session ID</span><code id="sidfull">none yet</code></div>
+      <button class="item" role="menuitem" id="copy" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy ID</button>
+      <button class="item" role="menuitem" id="load" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Load an ID</button>
+      <button class="item" role="menuitem" id="new" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New session</button>
+      <div class="sep"></div>
+      <button class="item danger" role="menuitem" id="wipe" type="button"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Delete session</button>
+      <div class="note">Cookies for the sites you visit are kept in this session on the server, and disappear when you delete it.</div>
+    </div>
+  </div>
 </div>
 
 <main>
@@ -239,7 +348,7 @@
     <svg class="logo" viewBox="0 0 84 56" aria-hidden="true">
       <defs>
         <linearGradient id="cg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="var(--cloud-a)"/><stop offset="1" stop-color="var(--cloud-b)"/>
+          <stop offset="0" stop-color="var(--logo-a)"/><stop offset="1" stop-color="var(--logo-b)"/>
         </linearGradient>
       </defs>
       <path fill="url(#cg)" opacity=".5" transform="translate(32 0) scale(.72)" d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/>
@@ -249,44 +358,52 @@
   </div>
   <p class="lede rise" style="--i:1">Browse through your own server. Cookies from the sites you visit stay in your session here, not in your browser.</p>
 
-  <form id="go" class="bar rise" style="--i:2" autocomplete="off">
+  <form id="go" class="bar glass rise" style="--i:2" autocomplete="off">
     <svg class="i lead" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-    <input id="q" type="text" placeholder="Search or enter an address" spellcheck="false" autofocus aria-label="Search or enter an address">
+    <div class="field">
+      <input id="q" type="text" placeholder=" " spellcheck="false" autofocus aria-label="Search or enter an address">
+      <span class="ph" id="ph" aria-hidden="true">Search or enter an address</span>
+    </div>
     <button class="go" type="submit" aria-label="Go"><span>Go</span><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
   </form>
   <p class="hint rise" style="--i:3">Type a web address, or words to search.<span class="kbdhint"> Press <kbd>/</kbd> to jump back here.</span></p>
 
   <div id="pw" hidden>
-    <input id="pass" type="password" placeholder="Server password" aria-label="Server password">
+    <input id="pass" class="glass" type="password" placeholder="Server password" aria-label="Server password">
   </div>
-
-
-  <section class="dock glass rise" style="--i:4" aria-label="Session">
-    <span class="sid"><span class="dot" id="dot"></span><span class="l">Session</span><code id="sid" title="">none yet</code></span>
-    <div class="acts">
-      <button type="button" class="chip" id="copy"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy ID</button>
-      <button type="button" class="chip" id="load"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Load ID</button>
-      <button type="button" class="chip" id="new"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New</button>
-      <button type="button" class="chip danger" id="wipe"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>Delete</button>
-    </div>
-  </section>
-  <p id="msg" role="status" aria-live="polite"></p>
 </main>
+
+<div class="toast glass" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="launch" id="launch" hidden aria-live="polite">
+  <div class="ring"><svg viewBox="0 0 64 44" aria-hidden="true"><path d="M18 40C9.2 40 4 34.4 4 28.2c0-5.2 3.7-9.6 8.8-10.6C14.4 10.4 20.6 5 28 5c6.6 0 12 3.9 14.3 9.5.9-.3 2-.5 3.2-.5C52 14 58 19 58 26.5 58 33.7 53 40 45.5 40z"/></svg></div>
+  <p>Opening <b id="lhost"></b></p>
+</div>
 
 <script>
   var $ = function (s) { return document.querySelector(s); };
+  var root = document.documentElement;
   var sid = localStorage.getItem('nimbus.sid') || '';
 
+  /* ---------- messages ---------- */
+  var toastTimer;
   function say(t) {
-    var m = $('#msg');
-    m.textContent = t || '';
-    var bad = /could not|does not|no session|needs a password|failed|no session to|not look like/i.test(t || '');
-    var good = /copied|loaded|started|deleted/i.test(t || '');
-    m.className = bad ? 'bad' : good ? 'ok' : '';
+    var el = $('#toast');
+    clearTimeout(toastTimer);
+    if (!t) { el.hidden = true; return; }
+    var bad = /could not|does not|no session|needs a password|failed|no session to|not look like/i.test(t);
+    var good = /copied|loaded|started|deleted/i.test(t);
+    el.textContent = t;
+    el.className = 'toast glass' + (bad ? ' bad' : good ? ' ok' : '');
+    el.hidden = false;
+    toastTimer = setTimeout(function () { el.hidden = true; }, 5000);
   }
+
+  /* ---------- session ---------- */
   function show() {
-    $('#sid').textContent = sid ? sid.slice(0, 6) + '\u2026' + sid.slice(-4) : 'none yet';
-    $('#sid').title = sid;
+    $('#sid').textContent = sid ? sid.slice(0, 6) + '\u2026' + sid.slice(-4) : 'No session';
+    $('#sid').className = sid ? 'mono' : '';
+    $('#sidfull').textContent = sid || 'none yet';
     $('#dot').className = 'dot' + (sid ? ' on' : '');
   }
   function save(id) {
@@ -294,19 +411,14 @@
     if (sid) localStorage.setItem('nimbus.sid', sid); else localStorage.removeItem('nimbus.sid');
     show();
   }
-
   async function api(path, body) {
-    var r = await fetch('/_px/' + path, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {})
-    });
+    var r = await fetch('/_px/' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body || {}) });
     return { status: r.status, data: await r.json().catch(function () { return {}; }) };
   }
-
   async function exists(id) {
     var r = await fetch('/_px/session?id=' + encodeURIComponent(id));
     return (await r.json()).exists;
   }
-
   async function create() {
     var r = await api('session', { password: $('#pass').value });
     if (r.status === 401) {
@@ -315,10 +427,11 @@
       return false;
     }
     if (!r.data.id) { say('Could not start a session. Check that the server is running.'); return false; }
-    save(r.data.id); say('');
+    save(r.data.id);
     return true;
   }
 
+  /* ---------- going somewhere ---------- */
   function normalize(v) {
     v = v.trim();
     if (!v) return '';
@@ -326,15 +439,28 @@
     if (/^[^\s\/]+\.[a-z]{2,}([\/:?#].*)?$/i.test(v) || /^localhost(:\d+)?/i.test(v)) return 'https://' + v;
     return '__SEARCH_URL__' + encodeURIComponent(v);
   }
+  function showLaunch(url) {
+    var host = url;
+    try { host = new URL(url).hostname; } catch (e) {}
+    $('#lhost').textContent = host;
+    $('#launch').hidden = false;
+  }
+  function hideLaunch() { $('#launch').hidden = true; }
+  addEventListener('pageshow', hideLaunch);
 
   async function go(value) {
     var url = normalize(value);
     if (!url) return;
-    if (sid && !(await exists(sid))) save('');
-    if (!sid && !(await create())) return;
-    location.href = '/p/' + sid + '/' + url;
+    showLaunch(url);
+    try {
+      if (sid && !(await exists(sid))) save('');
+      if (!sid && !(await create())) return hideLaunch();
+      location.href = '/p/' + sid + '/' + url;
+    } catch (e) {
+      hideLaunch();
+      say('Could not reach the Nimbus server.');
+    }
   }
-
   $('#go').addEventListener('submit', function (e) { e.preventDefault(); go($('#q').value); });
   document.addEventListener('keydown', function (e) {
     if (e.key === '/' && document.activeElement !== $('#q') && document.activeElement !== $('#pass')) {
@@ -342,38 +468,97 @@
     }
   });
 
+  /* ---------- session menu ---------- */
+  function menuOpen(open) {
+    $('#menu').hidden = !open;
+    $('#pill').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) $('#copy').focus();
+  }
+  $('#pill').onclick = function () { menuOpen($('#menu').hidden); };
+  document.addEventListener('click', function (e) {
+    if (!$('#menu').hidden && !e.target.closest('.menu-wrap')) menuOpen(false);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !$('#menu').hidden) { menuOpen(false); $('#pill').focus(); }
+  });
+
   $('#copy').onclick = async function () {
+    menuOpen(false);
     if (!sid) return say('There is no session to copy yet.');
     try { await navigator.clipboard.writeText(sid); say('Session ID copied.'); }
-    catch (e) { say('Copy failed. Select the ID and copy it by hand.'); }
+    catch (e) { say('Copy failed. Open the menu, select the ID and copy it by hand.'); }
   };
-
   $('#load').onclick = async function () {
+    menuOpen(false);
     var id = (prompt('Paste a session ID') || '').trim().toLowerCase();
     if (!id) return;
     if (!/^[0-9a-f]{24}$/.test(id)) return say('That does not look like a session ID.');
     if (!(await exists(id))) return say('No session with that ID. It may have expired or the server restarted.');
     save(id); say('Session loaded.');
   };
-
   $('#new').onclick = async function () {
+    menuOpen(false);
     if (await create()) say('New session started. Cookies from the old one were not carried over.');
   };
-
   $('#wipe').onclick = async function () {
+    menuOpen(false);
     if (!sid) return say('There is no session to delete.');
     await api('session/delete', { id: sid });
     save(''); say('Session deleted. Its cookies are gone from the server.');
   };
 
-  // Sky drifts slightly with the pointer.
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    var layers = document.querySelectorAll('.moon, .orb');
+  /* ---------- theme ---------- */
+  var ORDER = ['auto', 'day', 'dusk', 'night'];
+  var COLORS = { day: '#4f9bff', dusk: '#080b25', night: '#020616' };
+  function effective(pref) { return pref === 'auto' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'day' : 'dusk') : pref; }
+  function applyTheme(pref) {
+    var eff = effective(pref);
+    root.dataset.theme = eff; root.dataset.pref = pref;
+    $('#tc').content = COLORS[eff];
+    $('#theme').title = 'Theme: ' + (pref === 'auto' ? 'Auto (' + eff + ')' : pref) + '. Click to change.';
+  }
+  $('#theme').onclick = function () {
+    var cur = localStorage.getItem('nimbus.theme') || 'auto';
+    var next = ORDER[(ORDER.indexOf(cur) + 1) % ORDER.length];
+    localStorage.setItem('nimbus.theme', next);
+    applyTheme(next);
+    say('Theme: ' + (next === 'auto' ? 'Auto (' + effective('auto') + ')' : next.charAt(0).toUpperCase() + next.slice(1)));
+  };
+  matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () {
+    if ((localStorage.getItem('nimbus.theme') || 'auto') === 'auto') applyTheme('auto');
+  });
+  applyTheme(localStorage.getItem('nimbus.theme') || 'auto');
+
+  /* ---------- little touches ---------- */
+  var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Rotating example in the empty address bar.
+  var examples = ['Search or enter an address', 'wikipedia.org', 'news.ycombinator.com', 'how do rainbows form', 'github.com'];
+  var ei = 0;
+  $('#q').addEventListener('focus', function () { ei = 0; $('#ph').textContent = examples[0]; });
+  if (!reduce) setInterval(function () {
+    var q = $('#q'), ph = $('#ph');
+    if (q.value || document.activeElement === q) return;
+    ph.classList.add('out');
+    setTimeout(function () { ei = (ei + 1) % examples.length; ph.textContent = examples[ei]; ph.classList.remove('out'); }, 360);
+  }, 3800);
+
+  // Soft light that follows the pointer across the address bar.
+  var bar = $('#go');
+  bar.addEventListener('pointermove', function (e) {
+    var r = bar.getBoundingClientRect();
+    bar.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+    bar.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  });
+
+  // The sky drifts slightly with the pointer, each layer by a different amount.
+  if (!reduce) {
+    var layers = document.querySelectorAll('[data-depth]');
     addEventListener('pointermove', function (e) {
       var x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
-      layers.forEach(function (el, i) {
-        var d = 12 + i * 10;
-        el.style.translate = (-x * d) + 'px ' + (-y * d) + 'px';
+      layers.forEach(function (el) {
+        var d = +el.getAttribute('data-depth');
+        el.style.translate = (-x * d) + 'px ' + (-y * d * .6) + 'px';
       });
     }, { passive: true });
   }

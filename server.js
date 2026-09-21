@@ -12,6 +12,8 @@
  *   ALLOW_PRIVATE  set to 1 to let the proxy reach localhost / LAN addresses (off by default).
  *   SEARCH_URL     search engine used when you type words instead of an address.
  *                  Default https://html.duckduckgo.com/html/?q=   (your words are added on the end)
+ *   YOUTUBE_FRONTEND  address of an Invidious or Piped site (for example https://your-instance.example).
+ *                  YouTube links then open there, through the proxy. See the README.
  *   DEBUG          set to 1 to log each request (host, path, status) and WebSocket events. Off by default.
  */
 
@@ -33,6 +35,10 @@ const HOST = process.env.HOST || '127.0.0.1';
 const PASSWORD = process.env.PASSWORD || '';
 const ALLOW_PRIVATE = process.env.ALLOW_PRIVATE === '1';
 const DEBUG = process.env.DEBUG === '1';
+let YOUTUBE_FRONTEND = (process.env.YOUTUBE_FRONTEND || '').trim().replace(/\/+$/, '');
+if (YOUTUBE_FRONTEND) {
+  try { new URL(YOUTUBE_FRONTEND); } catch { console.log('Ignoring YOUTUBE_FRONTEND: not a valid address.'); YOUTUBE_FRONTEND = ''; }
+}
 const SEARCH_URL = process.env.SEARCH_URL || 'https://html.duckduckgo.com/html/?q=';
 const log = (...a) => { if (DEBUG) console.log(new Date().toISOString().slice(11, 19), ...a); };
 const SESSION_TTL = 3 * 24 * 60 * 60 * 1000; // idle sessions are deleted after 3 days
@@ -505,6 +511,38 @@ const DROP = new Set([
   'referrer-policy',
 ]);
 
+/* ------------------------------------------------------------------ YouTube */
+
+// YouTube's own site needs heavy scripts this proxy cannot run. Invidious and Piped are open-source
+// YouTube front ends that work as ordinary web pages. If YOUTUBE_FRONTEND is set, YouTube page links are
+// sent there instead (still through the proxy). Only page addresses move; scripts and images are left alone.
+const YT_HOST = /^((www|m|music)\.)?youtube\.com$|^youtu\.be$|^(www\.)?youtube-nocookie\.com$/i;
+const YT_PAGE = /^\/($|watch|results|shorts\/|live\/|embed\/|playlist|channel\/|c\/|user\/|@)/;
+
+function youtubeRedirect(target) {
+  if (!YOUTUBE_FRONTEND || !YT_HOST.test(target.hostname)) return null;
+  let pathname = target.pathname;
+  const params = new URLSearchParams(target.search);
+  if (/^youtu\.be$/i.test(target.hostname)) {
+    const id = pathname.split('/')[1];
+    if (!id) return YOUTUBE_FRONTEND + '/';
+    pathname = '/watch';
+    params.set('v', id);
+  } else {
+    if (!YT_PAGE.test(pathname)) return null;
+    const m = /^\/(?:shorts|live)\/([^/?#]+)/.exec(pathname);
+    if (m) {
+      pathname = '/watch';
+      params.set('v', m[1]);
+    }
+  }
+  // local=true makes Invidious send the video through its own server. Without it the video links only
+  // work from the address that asked for them, which would be this proxy, not your browser.
+  if (pathname === '/watch' || pathname.startsWith('/embed/')) params.set('local', 'true');
+  const qs = params.toString();
+  return YOUTUBE_FRONTEND + pathname + (qs ? '?' + qs : '');
+}
+
 /* ------------------------------------------------------------------ site fixes */
 
 // Small edits to a site's own JavaScript, for sites that check which address they are running on.
@@ -534,6 +572,13 @@ async function handleProxy(req, res, sid, targetStr, ref) {
   } catch {
     return send(res, 400, 'That is not a valid address.');
   }
+  const yt = youtubeRedirect(target);
+  if (yt) {
+    log('YouTube page ->', yt);
+    res.writeHead(302, { location: `/p/${sid}/${yt}`, 'cache-control': 'no-store' });
+    return res.end();
+  }
+
   const problem = await hostProblem(target.hostname);
   if (problem) {
     log('BLOCKED BY NIMBUS:', problem);
@@ -807,6 +852,7 @@ if (require.main === module) {
   server.listen(PORT, HOST, () => {
     console.log(`Nimbus is running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
     if (HOST === '0.0.0.0' && !PASSWORD) console.log('Warning: open to the network with no PASSWORD set.');
+    if (YOUTUBE_FRONTEND) console.log(`YouTube links open on ${YOUTUBE_FRONTEND}`);
   });
 }
 
