@@ -1,6 +1,6 @@
 {
   "name": "Nimbus",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
   "forwardPorts": [8080],
   "portsAttributes": {
     "8080": {
@@ -8,6 +8,9 @@
       "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "if [ -f package.json ]; then npm install; fi",
-  "postStartCommand": "nohup node server.js > /tmp/nimbus.log 2>&1 & (sleep 10; gh codespace ports visibility 8080:public -c \"$CODESPACE_NAME\") > /tmp/ports.log 2>&1 &"
+  "remoteEnv": {
+    "HOST": "0.0.0.0"
+  },
+  "postCreateCommand": "npm install",
+  "postStartCommand": "nohup node server.js > /tmp/nimbus.log 2>&1 &"
 }
