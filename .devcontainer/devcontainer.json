@@ -1,6 +1,9 @@
 {
   "name": "Nimbus",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
   "forwardPorts": [8080],
   "portsAttributes": {
     "8080": {
@@ -12,5 +15,5 @@
     "HOST": "0.0.0.0"
   },
   "postCreateCommand": "npm install",
-  "postStartCommand": "nohup node server.js > /tmp/nimbus.log 2>&1 &"
+  "postStartCommand": "nohup bash .devcontainer/start.sh > /tmp/start.log 2>&1 &"
 }
