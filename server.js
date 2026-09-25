@@ -39,7 +39,7 @@ let YOUTUBE_FRONTEND = (process.env.YOUTUBE_FRONTEND || '').trim().replace(/\/+$
 if (YOUTUBE_FRONTEND) {
   try { new URL(YOUTUBE_FRONTEND); } catch { console.log('Ignoring YOUTUBE_FRONTEND: not a valid address.'); YOUTUBE_FRONTEND = ''; }
 }
-const SEARCH_URL = process.env.SEARCH_URL || 'https://html.duckduckgo.com/html/?q=';
+const SEARCH_URL = process.env.SEARCH_URL || 'https://www.bing.com/search?q=';
 const log = (...a) => { if (DEBUG) console.log(new Date().toISOString().slice(11, 19), ...a); };
 const SESSION_TTL = 3 * 24 * 60 * 60 * 1000; // idle sessions are deleted after 3 days
 const MAX_BODY = 50 * 1024 * 1024;
